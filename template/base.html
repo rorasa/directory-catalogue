@@ -11,16 +11,24 @@
         function goToPage(page){
             page.show();
             currentPage.hide();
-            previousPage = currentPage;
+            previousPage.push(currentPage);
             currentPage = page;
-            console.log(currentPage)
         }
 
         function goToHome(){
             $('.page').hide();
             $('#home').show();
             currentPage = $('#home');
-            previousPage = $('#home');
+            previousPage = [];
+        }
+
+        function goBack(){
+            if (previousPage.length > 0){
+                currentPage.hide()
+                page = previousPage.pop();
+                page.show()
+                currentPage = page;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function(event) {
@@ -33,7 +41,7 @@
   <body>
     <div class="navbar">
         <ul class="navbar-menu">
-            <li><a href="#" onclick="goToPage(previousPage)">Back</a></li>
+            <li><a href="#" onclick="goBack()">Back</a></li>
             <li><a href="#" onclick="goToHome()">Home</a></li>
             <li>Tags</li>
             <li>Favourites</li>
@@ -44,7 +52,7 @@
     </div>
 
     <div class="main">
-        <div class="page" id="home">
+        <!-- <div class="page" id="home">
             <p><a href="#" onclick="goToPage($('#page1'))">Page 1</a></p>
             <p><a href="#" onclick="goToPage($('#page2'))">Page 2</a></p>
             <p><a href="#" onclick="goToPage($('#page3'))">Page 3</a></p>
@@ -52,18 +60,9 @@
 
         <div class="page" id="page1">
             <h1>Page 1</h1>
-        </div>
+        </div> -->
 
-        <div class="page" id="page2">
-            <h1>Page 2</h1>
-            <p>fdafadf</p>
-            <p>fdafadf</p>
-            <p>fdafadf</p>
-        </div>
-
-        <div class="page" id="page3">
-            <h1>Page 3</h1>
-        </div>
+        {{body}}
 
     </div>
 
