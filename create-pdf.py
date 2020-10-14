@@ -61,6 +61,23 @@ class Document:
     def save(self):
         self.doc.save()
 
+def createFavPages(document, fav_list):
+    # create favourite page
+    document.title("Favourite", 0, 0)
+    document.addBookmark("favourite_list")
+
+    fav_list.sort()
+
+    for i in range(0, len(fav_list)):
+        item_path = fav_list[i]
+        document.link(os.path.basename(item_path), 0, 0.3, item_path)
+
+        if (i+1)%20 == 0:
+            document.newPage()
+        i+=1
+
+    document.newPage()
+
 def createTagPages(document, tag_list):
     # create tag list page
     document.title("Tag List", 0, 0)
@@ -94,11 +111,6 @@ def createTagPages(document, tag_list):
             i+=1
 
         document.newPage()
-        
-        # add title
-        # document.title("TAG: {}".format(key), 0, 0)
-        # document.addBookmark()
-
 
 def createDirectoryPages(document, created_outline):
     for key in created_outline:
@@ -176,12 +188,15 @@ if __name__ == "__main__":
        
     # add entry page
     doc.title(catalogue_name,0,0)
-    doc.text("Favourite list", 0, 0.5)
+    doc.link("Favourite list", 0, 0.5, "favourite_list")
     doc.link("Tag list",0,0.5, "tag_list")
     doc.link("Directory tree",0,0.5, root_directory)
     doc.newPage()
 
-    # creat tag pages
+    # create favourite page
+    createFavPages(doc, fav_list)
+
+    # create tag pages
     createTagPages(doc, tag_list)
 
     # create directory pages
