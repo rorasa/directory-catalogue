@@ -1,6 +1,7 @@
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+import toml
 import sys
 import os
 import platform
@@ -60,31 +61,46 @@ class Document:
     def save(self):
         self.doc.save()
 
-if __name__ == "__main__":
-    root_directory = os.path.abspath(sys.argv[1])
-    print("Creating catalogue for {}".format(root_directory))
-  
-    # create leveled outline of directory
-    created_outline = {}
-    path = os.walk(root_directory)
-    for root, directories, files in path:
-        relative_path = root.replace(root_directory,"")
-        path_level = relative_path.count(PATH_SEPARATOR)
-        if not path_level in created_outline:
-            created_outline[path_level] = []
-        created_outline[path_level].append(root)
+def createTagPages(document, tag_list):
+    # create tag list page
+    document.title("Tag List", 0, 0)
+    document.addBookmark("tag_list")
 
-    # create empty document
-    doc = Document(canvas.Canvas("{}.pdf".format(os.path.basename(root_directory))))
-       
-    # add entry page
-    doc.title(catalogue_name,0,0)
-    doc.text("Favourite list", 0, 0.5)
-    doc.text("Tag list",0,0.5)
-    doc.link("Directory tree",0,0.5, root_directory)
-    doc.newPage()
+    key_list = list(tag_list)
+    key_list.sort()
+    for i in range(0, len(key_list)):
+        key = key_list[i]
+        document.link(key, 0, 0.3, key)
 
-    # create content pages
+        if (i+1)%20 == 0:
+            document.newPage()
+        i += 1
+        
+    document.newPage()
+
+    # create tag pages
+    for key in key_list:
+        document.title("TAG: {}".format(key), 0, 0)
+        document.addBookmark(key)
+
+        item_list = tag_list[key]
+        item_list.sort()
+        for i in range(0, len(item_list)):
+            item_path = item_list[i]
+            document.link(os.path.basename(item_path), 0, 0.3, item_path)
+
+            if (i+1)%20 == 0:
+                document.newPage()
+            i+=1
+
+        document.newPage()
+        
+        # add title
+        # document.title("TAG: {}".format(key), 0, 0)
+        # document.addBookmark()
+
+
+def createDirectoryPages(document, created_outline):
     for key in created_outline:
         created_outline[key].sort()
 
@@ -92,12 +108,12 @@ if __name__ == "__main__":
         for path in created_outline[key]:
             print("level {}: {}".format(key, path))
 
-            # add titile
-            doc.title("DIR: {}".format(os.path.basename(path)),0,0)
-            doc.addBookmark(path)
+            # add title
+            document.title("DIR: {}".format(os.path.basename(path)),0,0)
+            document.addBookmark(path)
             
             # add directory listing
-            doc.text("Directory list:",0,0.5)
+            document.text("Directory list:",0,0.5)
             
             items = os.listdir(path)
             for i in range(0, len(items)):
@@ -106,14 +122,14 @@ if __name__ == "__main__":
                
                 # add subpage links
                 if os.path.isdir(item_path):
-                    doc.link("DIR: {}".format(item_path),0,0.3, item_path)
+                    document.link("DIR: {}".format(item_path),0,0.3, item_path)
 
                 # add file list
                 if os.path.isfile(item_path):
-                    doc.text("FILE: {}".format(item_path),0,0.3)
+                    document.text("FILE: {}".format(item_path),0,0.3)
                 
-                if i == 20:
-                    doc.newPage()
+                if (i+1)%20 == 0:
+                    document.newPage()
                 
                 i += 1
 
@@ -125,4 +141,51 @@ if __name__ == "__main__":
             # close the page
             doc.newPage()
 
+if __name__ == "__main__":
+    root_directory = os.path.abspath(sys.argv[1])
+    print("Creating catalogue for {}".format(root_directory))
+  
+    # analyse directory
+    created_outline = {}
+    tag_list = {}
+    fav_list = []
+
+    path = os.walk(root_directory)
+    for root, directories, files in path:
+        relative_path = root.replace(root_directory,"")
+        path_level = relative_path.count(PATH_SEPARATOR)
+        if not path_level in created_outline:
+            created_outline[path_level] = []
+        created_outline[path_level].append(root)
+
+        if "info.toml" in files:
+            with open(os.path.join(root,"info.toml")) as meta_file:
+                metadata = toml.loads(meta_file.read())
+
+            tags = metadata['tag']
+            for tag in tags:
+                if not tag in tag_list:
+                    tag_list[tag] = []
+                tag_list[tag].append(root)
+
+            if metadata['favourite']:
+                fav_list.append(root)
+
+    # create empty document
+    doc = Document(canvas.Canvas("{}.pdf".format(os.path.basename(root_directory))))
+       
+    # add entry page
+    doc.title(catalogue_name,0,0)
+    doc.text("Favourite list", 0, 0.5)
+    doc.link("Tag list",0,0.5, "tag_list")
+    doc.link("Directory tree",0,0.5, root_directory)
+    doc.newPage()
+
+    # creat tag pages
+    createTagPages(doc, tag_list)
+
+    # create directory pages
+    createDirectoryPages(doc, created_outline)
+    
+    # save output file
     doc.save()
