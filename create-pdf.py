@@ -5,6 +5,11 @@ import sys
 import os
 import platform
 
+if len(sys.argv) < 3:
+    catalogue_name = "Directory Catalogue"
+else:
+    catalogue_name = sys.argv[2]
+
 if len(sys.argv) < 2:
     print("no input directory given")
     sys.exit(-1)
@@ -45,6 +50,12 @@ class Document:
             -(self.last_line*inch) + 15),
         thickness=2, 
         Border='[1 1 1]')
+
+    def title(self, text, x, y):
+        self.doc.saveState()
+        self.doc.setFont("Helvetica", 16)
+        self.text(text, x, y)
+        self.doc.restoreState()
         
     def save(self):
         self.doc.save()
@@ -66,6 +77,13 @@ if __name__ == "__main__":
     # create empty document
     doc = Document(canvas.Canvas("{}.pdf".format(os.path.basename(root_directory))))
        
+    # add entry page
+    doc.title(catalogue_name,0,0)
+    doc.text("Favourite list", 0, 0.5)
+    doc.text("Tag list",0,0.5)
+    doc.link("Directory tree",0,0.5, root_directory)
+    doc.newPage()
+
     # create content pages
     for key in created_outline:
         created_outline[key].sort()
@@ -75,7 +93,7 @@ if __name__ == "__main__":
             print("level {}: {}".format(key, path))
 
             # add titile
-            doc.text(os.path.basename(path),0,0)
+            doc.title("DIR: {}".format(os.path.basename(path)),0,0)
             doc.addBookmark(path)
             
             # add directory listing
