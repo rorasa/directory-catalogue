@@ -28,16 +28,24 @@ class Document:
         self.doc = doc
         self.origin_x = PAGE_MARGIN_LEFT*inch
         self.origin_y = (11.75-PAGE_MARGIN_TOP)*inch
+        self.footer(catalogue_name, 1*inch, 0.2*inch)
         self.doc.translate(self.origin_x,self.origin_y)
         self.last_line = 0
 
     def newPage(self):
         self.doc.showPage()
+        self.footer(catalogue_name, 1*inch, 0.2*inch)
         self.doc.translate(self.origin_x,self.origin_y)
         self.last_line = 0
 
     def addBookmark(self, key):
         self.doc.bookmarkPage(key)
+
+    def line(self):
+        self.doc.line(0, 
+            -self.last_line*inch-2,
+            (8.25-2*PAGE_MARGIN_LEFT)*inch,
+            -self.last_line*inch-2 )
 
     def text(self, text, x, y):
         self.last_line += y
@@ -56,6 +64,12 @@ class Document:
         self.doc.saveState()
         self.doc.setFont("Helvetica", 16)
         self.text(text, x, y)
+        self.doc.restoreState()
+
+    def footer(self, text, x, y):
+        self.doc.saveState()
+        self.doc.setFont("Helvetica", 10)
+        self.doc.drawString(x, y, text)
         self.doc.restoreState()
         
     def save(self):
@@ -126,6 +140,7 @@ def createDirectoryPages(document, created_outline):
             
             # add directory listing
             document.text("Directory list:",0,0.5)
+            doc.line()
             
             items = os.listdir(path)
             for i in range(0, len(items)):
@@ -134,21 +149,38 @@ def createDirectoryPages(document, created_outline):
                
                 # add subpage links
                 if os.path.isdir(item_path):
-                    document.link("DIR: {}".format(item_path),0,0.3, item_path)
+                    document.link("DIR: {}".format(os.path.basename(item_path)),0,0.3, item_path)
 
                 # add file list
                 if os.path.isfile(item_path):
-                    document.text("FILE: {}".format(item_path),0,0.3)
+                    document.text("FILE: {}".format(os.path.basename(item_path)),0,0.3)
                 
                 if (i+1)%20 == 0:
                     document.newPage()
-                
                 i += 1
 
             # add info
             # info from toml file goes here
             if "info.toml" in items:
-                doc.text("Metadata",0,0.5)
+                doc.text("Metadata:",0,0.5)
+                doc.line()
+
+                with open(os.path.join(path,"info.toml")) as meta_file:
+                    metadata = toml.loads(meta_file.read())
+
+                if "title" in metadata:
+                    doc.title(metadata['title'],0,0.5)
+                if "favourite" in metadata:
+                    if metadata["favourite"]:
+                        doc.text("Favourited", 0, 0.4)
+                if "description" in metadata:
+                    doc.text(metadata['description'], 0, 0.4)
+                if "tag" in metadata:
+                    doc.text("Tags:", 0, 0.3)
+                    tags = metadata['tag']
+                    tags.sort()
+                    for tag in tags:
+                        doc.link("- {}".format(tag), 0, 0.25, tag)
             
             # close the page
             doc.newPage()
