@@ -1,5 +1,6 @@
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
+from reportlab.lib import colors
 import sys
 import os
 import platform
@@ -29,10 +30,22 @@ class Document:
         self.doc.translate(self.origin_x,self.origin_y)
         self.last_line = 0
 
-    def drawString(self, text, x, y):
+    def addBookmark(self, key):
+        self.doc.bookmarkPage(key)
+
+    def text(self, text, x, y):
         self.last_line += y
         self.doc.drawString(x*inch,-self.last_line*inch,text)
-       
+
+    def link(self, text, x, y, destination):
+        self.text(text, x, y)        
+        self.doc.linkRect(text, destination, (0,
+            -self.last_line*inch, 
+            (8.25-2*PAGE_MARGIN_LEFT)*inch, 
+            -(self.last_line*inch) + 15),
+        thickness=2, 
+        Border='[1 1 1]')
+        
     def save(self):
         self.doc.save()
 
@@ -62,10 +75,11 @@ if __name__ == "__main__":
             print("level {}: {}".format(key, path))
 
             # add titile
-            doc.drawString(os.path.basename(path),0,0)
+            doc.text(os.path.basename(path),0,0)
+            doc.addBookmark(path)
             
             # add directory listing
-            doc.drawString("Directory list:",0,0.5)
+            doc.text("Directory list:",0,0.5)
             
             items = os.listdir(path)
             for i in range(0, len(items)):
@@ -74,35 +88,23 @@ if __name__ == "__main__":
                
                 # add subpage links
                 if os.path.isdir(item_path):
-                    doc.drawString("DIR: {}".format(item_path),0,0.3)
+                    doc.link("DIR: {}".format(item_path),0,0.3, item_path)
 
                 # add file list
                 if os.path.isfile(item_path):
-                    doc.drawString("FILE: {}".format(item_path),0,0.3)
-
-                # add info
+                    doc.text("FILE: {}".format(item_path),0,0.3)
                 
                 if i == 20:
                     doc.newPage()
                 
                 i += 1
+
+            # add info
+            # info from toml file goes here
+            if "info.toml" in items:
+                doc.text("Metadata",0,0.5)
             
             # close the page
             doc.newPage()
 
     doc.save()
-    
-# c = canvas.Canvas("hello.pdf")
-# c.drawString(72,72,"Page 1")
-# c.showPage()
-# c.drawString(72,72,"Page 2")
-# c.showPage()
-
-# createInfoPage(c)
-
-# c.doForm("InfoPageForm")
-# c.showPage()
-# c.doForm("InfoPageForm")
-# c.showPage()
-
-# c.save()
