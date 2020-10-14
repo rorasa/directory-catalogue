@@ -77,6 +77,7 @@ class Document:
 
 def createFavPages(document, fav_list):
     # create favourite page
+    print("creating favourite list")
     document.title("Favourite", 0, 0)
     document.addBookmark("favourite_list")
 
@@ -94,6 +95,7 @@ def createFavPages(document, fav_list):
 
 def createTagPages(document, tag_list):
     # create tag list page
+    print("creating tag list")
     document.title("Tag List", 0, 0)
     document.addBookmark("tag_list")
 
@@ -111,6 +113,7 @@ def createTagPages(document, tag_list):
 
     # create tag pages
     for key in key_list:
+        print("creating tag page {}".format(key))
         document.title("TAG: {}".format(key), 0, 0)
         document.addBookmark(key)
 
@@ -132,7 +135,7 @@ def createDirectoryPages(document, created_outline):
 
         # for each directory
         for path in created_outline[key]:
-            print("level {}: {}".format(key, path))
+            print("creating directory page level {}: {}".format(key, path))
 
             # add title
             document.title("DIR: {}".format(os.path.basename(path)),0,0)
@@ -190,6 +193,7 @@ if __name__ == "__main__":
     print("Creating catalogue for {}".format(root_directory))
   
     # analyse directory
+    print("analysing directory...")
     created_outline = {}
     tag_list = {}
     fav_list = []
@@ -214,9 +218,12 @@ if __name__ == "__main__":
 
             if metadata['favourite']:
                 fav_list.append(root)
+    print("done")
 
     # create empty document
-    doc = Document(canvas.Canvas("{}.pdf".format(os.path.basename(root_directory))))
+    output_file = "{}.pdf".format(os.path.basename(root_directory))
+    output_path = os.path.join(root_directory, output_file)
+    doc = Document(canvas.Canvas(output_path))
        
     # add entry page
     doc.title(catalogue_name,0,0)
@@ -236,3 +243,4 @@ if __name__ == "__main__":
     
     # save output file
     doc.save()
+    print("Catalogue created at {}".format(output_path))
