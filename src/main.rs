@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+
+use directory_catalogue::run;
 
 fn main() {
     println!("DIRECTORY CATALOGUE");
@@ -22,11 +23,4 @@ fn main() {
     }
 
     run(&target_path);   
-}
-
-fn run(root_path: &PathBuf){
-    println!("Working on root: {}", root_path.display());
-
-    println!("{}",root_path.display());
-    println!("{}",root_path.is_dir());
 }

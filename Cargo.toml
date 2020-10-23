@@ -1,5 +1,5 @@
 [package]
-name = "directory-catalogue"
+name = "directory_catalogue"
 version = "0.1.0"
 authors = ["Wattanit Hotrakool <wattanit@wattanit.com>"]
 edition = "2018"
