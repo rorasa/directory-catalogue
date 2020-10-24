@@ -2,10 +2,13 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
+use toml::Value;
 
 struct Page {
     name: String,
-    children: Vec<Page>
+    title: String,
+    children: Vec<Page>,
+    info: Option<toml::Value>
 }
 
 impl std::fmt::Display for Page {
@@ -18,12 +21,13 @@ fn get_page_name(path: &PathBuf) -> String{
     String::from(path.file_name().unwrap().to_str().unwrap())
 }
 
-fn get_extension(path: &PathBuf) -> String{
-    String::from(path.extension().unwrap().to_str().unwrap())
-}
+// fn get_extension(path: &PathBuf) -> String{
+//     String::from(path.extension().unwrap().to_str().unwrap())
+// }
 
 fn build_page(path: &PathBuf, is_root: bool) -> Page {
     let mut children_path = Vec::<PathBuf>::new();
+    let mut info: Option<toml::Value> = None;
 
     for item in fs::read_dir(path).expect("FAILED: Cannot read content of input path."){
         if let Ok(item) = item {
@@ -31,12 +35,17 @@ fn build_page(path: &PathBuf, is_root: bool) -> Page {
 
             if item_path.is_dir(){
                 if !item_path.ends_with("catalogue"){
-                    children_path.push(item_path);
+                    children_path.push(item_path.clone());
                 }
-            }else{
-                if get_extension(&item_path) == "toml"{
-                    println!("Found TOML file")
-                }
+            }
+            
+            if item_path.ends_with("info.toml"){
+                println!("Found TOML file");
+
+                let mut file = File::open(item_path).expect("FAILED: Cannot open toml file.");
+                let mut contents = String::new();
+                file.read_to_string(&mut contents).expect("FAILED: Cannot read toml file.");
+                info = Some(contents.parse::<Value>().expect("FAILED: Invalid toml file in {}"));
             }
         }
     }
@@ -45,6 +54,15 @@ fn build_page(path: &PathBuf, is_root: bool) -> Page {
         String::from("root")
     }else{
         get_page_name(path)
+    };
+
+    let title = if is_root {
+        String::from("Root Directory")
+    }else{
+        match &info {
+            Some(data) => String::from(data["title"].as_str().unwrap()),
+            None => page_name.clone()
+        }
     };
 
     // build child pages
@@ -56,7 +74,9 @@ fn build_page(path: &PathBuf, is_root: bool) -> Page {
 
     Page {
         name: page_name,
-        children: children_pages
+        title: title,
+        children: children_pages,
+        info: info
     }
 }
 
@@ -102,13 +122,27 @@ fn create_default_page(page: &Page, parent_path: &PathBuf) -> std::io::Result<()
     }
 
     let mut output_file = File::create(&parent_path.join("Readme.md"))?;
-    let mut output_page = format!("# {}\n\n", page.name);
+    let mut output_page = format!("# {}\n\n", page.title);
 
-    for sub_page in &page.children{
-        output_page.push_str(format!("[{}]({})\n\n", sub_page.name, sub_page.name).as_str());
+    // add links to children page
+    if page.children.len() > 0 {
+        output_page.push_str("## Sub-directories\n\n");
+        for sub_page in &page.children{
+            output_page.push_str(format!("[{}]({})\n\n", sub_page.title, sub_page.name).as_str());
+        }
     }
+
+    // add infomation in info.toml
+    let info = &page.info;
+    if info.is_some() {
+        let data = info.clone().unwrap();
+        output_page.push_str("## Description\n\n");
+        output_page.push_str(format!("{}\n\n", data["description"].as_str().unwrap()).as_str());
+    }
+
     output_file.write_all(output_page.as_bytes())?;
 
+    // create children pages recursively
     for sub_page in &page.children{
         create_default_page(&sub_page, &parent_path.join(&sub_page.name))?;
     }
