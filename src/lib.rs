@@ -60,7 +60,12 @@ fn build_page(path: &PathBuf, is_root: bool) -> Page {
         String::from("Root Directory")
     }else{
         match &info {
-            Some(data) => String::from(data["title"].as_str().unwrap()),
+            Some(data) => {
+                match data.get("title"){
+                    Some(t) => String::from(t.as_str().unwrap()),
+                    None => page_name.clone()
+                }  
+            },
             None => page_name.clone()
         }
     };
@@ -136,8 +141,15 @@ fn create_default_page(page: &Page, parent_path: &PathBuf) -> std::io::Result<()
     let info = &page.info;
     if info.is_some() {
         let data = info.clone().unwrap();
+        let desc = match data.get("description"){
+            Some(v) => v.as_str().unwrap(),
+            None => ""
+        };
+
         output_page.push_str("## Description\n\n");
-        output_page.push_str(format!("{}\n\n", data["description"].as_str().unwrap()).as_str());
+        
+        output_page.push_str(format!("{}\n\n", desc).as_str());
+                
     }
 
     output_file.write_all(output_page.as_bytes())?;
