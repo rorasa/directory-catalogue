@@ -30,7 +30,9 @@ fn build_page(path: &PathBuf, is_root: bool) -> Page {
             let item_path = item.path();
 
             if item_path.is_dir(){
-                children_path.push(item_path);
+                if !item_path.ends_with("catalogue"){
+                    children_path.push(item_path);
+                }
             }else{
                 if get_extension(&item_path) == "toml"{
                     println!("Found TOML file")
@@ -87,25 +89,29 @@ fn create_default_output(page: &Page, root_path: &PathBuf) -> std::io::Result<()
 
     output_file.write_all(output_page.as_bytes())?;
 
-    // // print page tree
-    // for page in pages{
-    //     println!("Page: {}", page);
-    //     // let mut output_file: File;
-    //     // let mut output_page: String;
-    //     // if page.name == "root"{
-    //     //     output_file = File::create(&dir_path.clone().join("Readme.md"))?;
-    //     //     output_page = format!("# Root directory\n\n");
-    //     // }else{
-    //     //     output_file = File::create(&dir_path.clone().join(&page.name).join("Readme.md"))?;
-    //     //     output_page = format!("# {}\n\n", &page.name);
-    //     // }
+    // build directory pages
+    create_default_page(page, &dir_path)?;
 
-    //     for sub_page in &page.children{
-    //         println!("      --{}", sub_page.display());
+    Ok(())
+}
 
-    //         // output_page.push_str("[{}]({})")
-    //     }
-    // }
+fn create_default_page(page: &Page, parent_path: &PathBuf) -> std::io::Result<()> {
+    println!("Building page: {}", page);
+    if !parent_path.exists() {
+        fs::create_dir_all(&parent_path)?;
+    }
+
+    let mut output_file = File::create(&parent_path.join("Readme.md"))?;
+    let mut output_page = format!("# {}\n\n", page.name);
+
+    for sub_page in &page.children{
+        output_page.push_str(format!("[{}]({})\n\n", sub_page.name, sub_page.name).as_str());
+    }
+    output_file.write_all(output_page.as_bytes())?;
+
+    for sub_page in &page.children{
+        create_default_page(&sub_page, &parent_path.join(&sub_page.name))?;
+    }
 
     Ok(())
 }
@@ -114,7 +120,7 @@ pub fn run(root_path: &PathBuf){
 
     // let mut pages = Vec::<Page>::new();
     
-    println!("Working on root: {}", root_path.display());
+    println!("Constructing directory tree on root: {}", root_path.display());
 
     // build pages
     let root_page = build_page(&root_path, true);
